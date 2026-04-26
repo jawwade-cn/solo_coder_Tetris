@@ -36,6 +36,7 @@ class Game {
         this.renderer = new GameRenderer(canvas, nextCanvas);
         this.elementSystem = new ElementSystem();
         this.enemyManager = new EnemyManager();
+        this.enemyManager.setCanvas(canvas);
         this.towerManager = new TowerManager(this.elementSystem, this.enemyManager);
         this.stats = new BattleStats();
         this.achievementManager = new AchievementManager();
