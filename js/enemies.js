@@ -1,14 +1,14 @@
 class Enemy {
-    constructor(type, path, startDelay = 0, gameCanvas = null) {
+    constructor(type, column, gameCanvas = null) {
         this.type = type;
         this.config = ENEMY_TYPES[type];
-        this.x = -30;
-        this.y = path.y;
-        this.baseY = path.y;
         
-        const canvasWidth = gameCanvas ? gameCanvas.width : 
-                           (window.canvas ? window.canvas.width : 200);
-        this.targetX = canvasWidth + 30;
+        this.column = column;
+        this.x = column * BLOCK_SIZE + BLOCK_SIZE / 2;
+        this.y = -BLOCK_SIZE;
+        
+        this.canvasWidth = gameCanvas ? gameCanvas.width : 200;
+        this.canvasHeight = gameCanvas ? gameCanvas.height : 400;
         
         this.hp = this.config.hp;
         this.maxHp = this.config.hp;
@@ -16,36 +16,30 @@ class Enemy {
         this.baseSpeed = this.config.speed;
         this.color = this.config.color;
         this.reward = this.config.reward;
+        this.damage = this.config.damage;
+        
         this.alive = true;
-        this.startDelay = startDelay;
-        this.spawned = false;
+        this.spawned = true;
         this.spawnTime = Date.now();
 
         this.effects = {
-            slow: { active: false, duration: 0 },
-            stun: { active: false, duration: 0 },
-            burn: { active: false, duration: 0, damage: 0 },
-            trap: { active: false, duration: 0 },
-            blind: { active: false, duration: 0 }
+            slow: { active: false, endTime: 0 },
+            stun: { active: false, endTime: 0 },
+            burn: { active: false, endTime: 0, damage: 0 },
+            poison: { active: false, endTime: 0, damage: 0 },
+            trap: { active: false, endTime: 0 }
         };
 
-        this.size = type === 'BOSS' ? 40 : 20;
+        this.size = type === 'BOSS' ? 30 : 18;
         this.animOffset = Math.random() * Math.PI * 2;
     }
 
     update(deltaTime) {
-        if (!this.spawned) {
-            if (Date.now() - this.spawnTime >= this.startDelay) {
-                this.spawned = true;
-            }
-            return;
-        }
+        if (!this.alive) return false;
 
-        if (!this.alive) return;
+        this.updateEffects();
 
-        this.updateEffects(deltaTime);
-
-        if (this.effects.stun.active) return;
+        if (this.effects.stun.active) return false;
 
         let currentSpeed = this.baseSpeed;
         if (this.effects.slow.active) {
@@ -55,17 +49,23 @@ class Enemy {
             currentSpeed *= 0.3;
         }
 
-        this.x += currentSpeed * 2;
-
-        const time = Date.now() / 200;
-        this.y = this.baseY + Math.sin(time + this.animOffset) * 10;
+        this.y += currentSpeed * BLOCK_SIZE * (deltaTime / 1000);
 
         if (this.effects.burn.active) {
             this.takeDamage(this.effects.burn.damage * deltaTime / 1000);
         }
+        if (this.effects.poison.active) {
+            this.takeDamage(this.effects.poison.damage * deltaTime / 1000);
+        }
+
+        if (this.y >= this.canvasHeight) {
+            return true;
+        }
+
+        return false;
     }
 
-    updateEffects(deltaTime) {
+    updateEffects() {
         const now = Date.now();
         for (const effect in this.effects) {
             if (this.effects[effect].active && now >= this.effects[effect].endTime) {
@@ -77,7 +77,6 @@ class Enemy {
     applyEffect(effect, duration = 2000, extraData = {}) {
         this.effects[effect] = {
             active: true,
-            duration: duration,
             endTime: Date.now() + duration,
             ...extraData
         };
@@ -92,12 +91,8 @@ class Enemy {
         return false;
     }
 
-    reachedEnd() {
-        return this.x >= this.targetX;
-    }
-
     draw(ctx) {
-        if (!this.spawned || !this.alive) return;
+        if (!this.alive) return;
 
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -113,40 +108,33 @@ class Enemy {
         ctx.stroke();
 
         ctx.fillStyle = '#000';
-        ctx.font = `bold ${size / 3}px sans-serif`;
+        ctx.font = `bold ${size / 2}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
-        const typeSymbol = {
-            BASIC: '👾',
-            FAST: '💨',
-            TANK: '🛡️',
-            BOSS: '👹'
-        };
-        ctx.fillText(typeSymbol[this.type] || '?', 0, 0);
+        ctx.fillText(this.config.symbol || '?', 0, 0);
 
         const hpBarWidth = size + 10;
-        const hpBarHeight = 6;
+        const hpBarHeight = 5;
         const hpPercent = this.hp / this.maxHp;
 
         ctx.fillStyle = '#333';
-        ctx.fillRect(-hpBarWidth / 2, -size / 2 - 12, hpBarWidth, hpBarHeight);
+        ctx.fillRect(-hpBarWidth / 2, -size / 2 - 10, hpBarWidth, hpBarHeight);
 
         ctx.fillStyle = hpPercent > 0.5 ? '#4CAF50' : hpPercent > 0.25 ? '#FF9800' : '#F44336';
-        ctx.fillRect(-hpBarWidth / 2, -size / 2 - 12, hpBarWidth * hpPercent, hpBarHeight);
+        ctx.fillRect(-hpBarWidth / 2, -size / 2 - 10, hpBarWidth * hpPercent, hpBarHeight);
 
         let effectY = size / 2 + 5;
         if (this.effects.slow.active) {
             ctx.fillStyle = '#4ECDC4';
-            ctx.font = '12px sans-serif';
+            ctx.font = '10px sans-serif';
             ctx.fillText('❄️', 0, effectY);
-            effectY += 15;
+            effectY += 12;
         }
         if (this.effects.stun.active) {
             ctx.fillStyle = '#FFD700';
             ctx.fillText('💫', 0, effectY);
         }
-        if (this.effects.burn.active) {
+        if (this.effects.burn.active || this.effects.poison.active) {
             ctx.fillStyle = '#FF6B6B';
             ctx.fillText('🔥', 0, effectY);
         }
@@ -184,23 +172,23 @@ class EnemyManager {
         this.waveEnemies = 0;
         this.waveKills = 0;
 
-        const enemyTypes = level.enemyTypes || ['BASIC'];
-        const enemiesPerWave = level.enemiesPerWave || 5;
+        const enemyTypes = level.battle?.enemyTypes || ['BASIC'];
+        const enemiesPerWave = level.battle?.enemiesPerWave || 5;
+        const speedMultiplier = level.battle?.enemySpeedMultiplier || 1;
+        const isBossWave = level.battle?.bossWave === waveNum;
 
         for (let i = 0; i < enemiesPerWave; i++) {
             const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            const path = {
-                y: 100 + Math.random() * 200
-            };
-            const delay = i * 800 + Math.random() * 500;
+            const column = Math.floor(Math.random() * COLS);
+            const delay = i * 500;
 
-            if (level.bossWave && waveNum === level.bossWave && i === enemiesPerWave - 1) {
-                const boss = new Enemy('BOSS', path, delay, this.canvas);
+            if (isBossWave && i === enemiesPerWave - 1) {
+                const boss = new Enemy('BOSS', column, this.canvas);
                 boss.hp *= 1.5;
                 boss.maxHp = boss.hp;
-                this.enemies.push(boss);
+                this.enemies.push({ enemy: boss, spawnDelay: delay, spawnTime: Date.now() });
             } else {
-                this.enemies.push(new Enemy(type, path, delay, this.canvas));
+                this.enemies.push({ enemy: new Enemy(type, column, this.canvas), spawnDelay: delay, spawnTime: Date.now() });
             }
             this.waveEnemies++;
             this.totalEnemiesSpawned++;
@@ -212,17 +200,28 @@ class EnemyManager {
     update(deltaTime) {
         const killed = [];
         const reached = [];
+        const now = Date.now();
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-            enemy.update(deltaTime);
+            const data = this.enemies[i];
+            
+            if (data.spawnDelay > 0) {
+                if (now - data.spawnTime < data.spawnDelay) {
+                    continue;
+                } else {
+                    data.spawnDelay = 0;
+                }
+            }
+
+            const enemy = data.enemy;
+            const reachedBottom = enemy.update(deltaTime);
 
             if (!enemy.alive) {
                 killed.push(enemy);
                 this.enemies.splice(i, 1);
                 this.totalEnemiesKilled++;
                 this.waveKills++;
-            } else if (enemy.reachedEnd()) {
+            } else if (reachedBottom) {
                 reached.push(enemy);
                 this.enemies.splice(i, 1);
             }
@@ -232,20 +231,28 @@ class EnemyManager {
     }
 
     getEnemiesInRange(x, y, range) {
-        return this.enemies.filter(enemy => {
-            if (!enemy.spawned && enemy.alive) {
-                const distance = Math.sqrt(
-                    Math.pow(enemy.x - x, 2) +
-                    Math.pow(enemy.y - y, 2)
-                );
-                return distance <= range;
-            }
-            return false;
-        });
+        return this.enemies.filter(data => {
+            if (data.spawnDelay > 0) return false;
+            const enemy = data.enemy;
+            if (!enemy.alive) return false;
+
+            const distance = Math.sqrt(
+                Math.pow(enemy.x - x, 2) +
+                Math.pow(enemy.y - y, 2)
+            );
+            return distance <= range;
+        }).map(data => data.enemy);
     }
 
     getAliveEnemies() {
-        return this.enemies.filter(e => e.alive && e.spawned);
+        return this.enemies.filter(data => {
+            if (data.spawnDelay > 0) return false;
+            return data.enemy.alive;
+        }).map(data => data.enemy);
+    }
+
+    getPendingEnemies() {
+        return this.enemies.filter(data => data.spawnDelay > 0);
     }
 
     isWaveComplete() {
@@ -253,6 +260,10 @@ class EnemyManager {
     }
 
     draw(ctx) {
-        this.enemies.forEach(enemy => enemy.draw(ctx));
+        this.enemies.forEach(data => {
+            if (data.spawnDelay <= 0) {
+                data.enemy.draw(ctx);
+            }
+        });
     }
 }

@@ -143,6 +143,44 @@ class GameRenderer {
         }
     }
 
+    drawPreparationPhase(time, timeLimit, piecesUsed, piecesLimit, energy) {
+        const ctx = this.ctx;
+        const centerX = this.canvas.width / 2;
+        const topY = 20;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(5, 5, this.canvas.width - 10, 50);
+
+        const timePercent = time / timeLimit;
+        const timeColor = timePercent > 0.5 ? '#4CAF50' : timePercent > 0.25 ? '#FF9800' : '#F44336';
+        
+        ctx.fillStyle = '#333';
+        ctx.fillRect(10, 10, 180, 10);
+        ctx.fillStyle = timeColor;
+        ctx.fillRect(10, 10, 180 * (1 - timePercent), 10);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px "Courier New"';
+        ctx.textAlign = 'left';
+        ctx.fillText(`时间: ${Math.ceil(timeLimit - time)}s`, 10, 32);
+
+        const piecesPercent = piecesUsed / piecesLimit;
+        const piecesColor = piecesPercent < 0.5 ? '#4CAF50' : piecesPercent < 0.8 ? '#FF9800' : '#F44336';
+        
+        ctx.fillStyle = '#333';
+        ctx.fillRect(centerX - 90, 10, 180, 10);
+        ctx.fillStyle = piecesColor;
+        ctx.fillRect(centerX - 90, 10, 180 * piecesPercent, 10);
+        ctx.textAlign = 'center';
+        ctx.fillText(`方块: ${piecesUsed}/${piecesLimit}`, centerX, 32);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText(`能量: ${energy}`, this.canvas.width - 10, 25);
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText('准备阶段', this.canvas.width - 10, 45);
+    }
+
     drawHP(hp, maxHP) {
         const barWidth = 180;
         const barHeight = 15;
@@ -176,6 +214,10 @@ class GameRenderer {
         this.ctx.textAlign = 'right';
         this.ctx.fillText(`波次: ${wave}/${totalWaves}`, x, y);
         this.ctx.fillText(`敌人: ${enemiesRemaining}`, x, y + 15);
+
+        this.ctx.fillStyle = '#00d4ff';
+        this.ctx.font = 'bold 12px "Courier New"';
+        this.ctx.fillText('战斗阶段', x, y - 30);
     }
 
     drawPause() {
@@ -216,5 +258,27 @@ class GameRenderer {
             ctx.font = '12px "Courier New"';
             ctx.fillText(level.description, centerX, centerY + 30);
         }
+    }
+
+    drawPhaseTransition(fromPhase, toPhase) {
+        const ctx = this.ctx;
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚔️ 战斗开始 ⚔️', centerX, centerY - 20);
+
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = '16px "Courier New"';
+        ctx.fillText('英雄已就位！消灭所有敌人！', centerX, centerY + 20);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px "Courier New"';
+        ctx.fillText('敌人将从顶部出现', centerX, centerY + 50);
     }
 }
