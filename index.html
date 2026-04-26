@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>复古俄罗斯方块</title>
+    <title>元素塔防 - 俄罗斯方块融合版</title>
     <style>
         @font-face {
             font-family: 'PressStart2P';
@@ -313,12 +313,13 @@
             padding: 40px;
             text-align: center;
             box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+            max-width: 450px;
         }
         
         .start-title {
             color: #e94560;
-            font-size: 36px;
-            margin-bottom: 30px;
+            font-size: 32px;
+            margin-bottom: 20px;
             text-shadow: 
                 3px 3px 0 #0f3460,
                 0 0 20px rgba(233, 69, 96, 0.7);
@@ -326,9 +327,9 @@
         
         .start-instructions {
             color: #fff;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.8;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             text-align: left;
         }
         
@@ -336,6 +337,26 @@
             color: #e94560;
             margin-bottom: 10px;
             text-align: center;
+            font-size: 16px;
+        }
+        
+        .element-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 8px;
+        }
+        
+        .element-item {
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .element-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
         }
         
         @media (max-height: 900px) {
@@ -578,30 +599,62 @@
 <body>
     <div class="start-overlay" id="startOverlay">
         <div class="start-content">
-            <h1 class="start-title">复古俄罗斯方块</h1>
+            <h1 class="start-title">🔥 元素塔防 💧</h1>
+            <h2 style="color: #00d4ff; font-size: 18px; margin-bottom: 20px;">俄罗斯方块融合版</h2>
+            
             <div class="start-instructions">
-                <h3>游戏说明</h3>
-                <p>🎮 六种颜色的方块随机落下</p>
+                <h3>🎮 游戏说明</h3>
                 <p>⬅️ ➡️ 左右移动方块</p>
                 <p>⬆️ 旋转方块</p>
                 <p>⬇️ 加速下落</p>
-                <p>💯 消行得分，分数越高速度越快</p>
-                <p>❌ 方块顶到顶部游戏结束</p>
+                <p>空格键 硬降 | P 暂停</p>
+                
+                <h3>🏰 塔防玩法</h3>
+                <p>放置的方块会变成防御塔</p>
+                <p>防御塔自动攻击路过的敌人</p>
+                <p>保护生命值，击败所有敌人！</p>
+                
+                <h3>✨ 元素系统</h3>
+                <div class="element-info">
+                    <div class="element-item">
+                        <div class="element-icon">🔥</div>
+                        <div>火 - 高伤害</div>
+                    </div>
+                    <div class="element-item">
+                        <div class="element-icon">💧</div>
+                        <div>水 - 减速效果</div>
+                    </div>
+                    <div class="element-item">
+                        <div class="element-icon">🌍</div>
+                        <div>土 - 眩晕效果</div>
+                    </div>
+                </div>
+                
+                <h3>🔮 元素融合</h3>
+                <p>相同或相邻元素会融合成更强形态</p>
+                <p>火+火=熔岩 | 水+水=海啸 | 土+土=地震</p>
+                <p>火+水=蒸汽 | 火+土=岩浆 | 水+土=泥流</p>
             </div>
+            
             <button class="game-btn" id="startGameBtn">开始游戏</button>
         </div>
     </div>
     
     <div class="game-over-overlay" id="gameOverOverlay">
         <div class="game-over-content">
-            <h1 class="game-over-title">游戏结束</h1>
+            <h1 class="game-over-title" id="gameOverTitle">游戏结束</h1>
             <p class="game-over-score">最终得分: <span id="finalScore">0</span></p>
-            <button class="game-btn" id="restartGameBtn">重新开始</button>
+            <div style="margin-bottom: 20px;">
+                <button class="game-btn" id="restartGameBtn">再来一局</button>
+            </div>
+            <div>
+                <button class="game-btn secondary" id="btnLevelSelect">选择关卡</button>
+            </div>
         </div>
     </div>
     
     <div class="game-container">
-        <h1 class="game-title">复古俄罗斯方块</h1>
+        <h1 class="game-title">🔥 元素塔防 💧</h1>
         
         <div class="game-screen">
             <div class="game-board">
@@ -659,570 +712,26 @@
             <button class="game-btn" id="btnNewGame">新游戏</button>
             <button class="game-btn secondary" id="btnSound">音效: 开</button>
         </div>
+        
+        <div class="button-controls" style="margin-top: 15px;">
+            <button class="game-btn secondary" id="btnLevels">关卡选择</button>
+            <button class="game-btn secondary" id="btnAchievements">成就</button>
+            <button class="game-btn secondary" id="btnStats">统计</button>
+        </div>
     </div>
     
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const nextCanvas = document.getElementById('nextCanvas');
-        const nextCtx = nextCanvas.getContext('2d');
-        
-        const scoreElement = document.getElementById('score');
-        const levelElement = document.getElementById('level');
-        const finalScoreElement = document.getElementById('finalScore');
-        
-        const startOverlay = document.getElementById('startOverlay');
-        const gameOverOverlay = document.getElementById('gameOverOverlay');
-        
-        const startGameBtn = document.getElementById('startGameBtn');
-        const restartGameBtn = document.getElementById('restartGameBtn');
-        const btnNewGame = document.getElementById('btnNewGame');
-        const btnSound = document.getElementById('btnSound');
-        const btnPause = document.getElementById('btnPause');
-        
-        const btnRotate = document.getElementById('btnRotate');
-        const btnLeft = document.getElementById('btnLeft');
-        const btnRight = document.getElementById('btnRight');
-        const btnDown = document.getElementById('btnDown');
-        const btnHardDrop = document.getElementById('btnHardDrop');
-        
-        const COLS = 10;
-        const ROWS = 20;
-        const BLOCK_SIZE = 20;
-        const NEXT_BLOCK_SIZE = 15;
-        
-        const COLORS = [
-            '#FF6B6B',
-            '#4ECDC4',
-            '#45B7D1',
-            '#96CEB4',
-            '#FFEAA7',
-            '#DDA0DD'
-        ];
-        
-        const SHAPES = [
-            [
-                [1, 1, 1, 1]
-            ],
-            [
-                [1, 1],
-                [1, 1]
-            ],
-            [
-                [1, 1, 1],
-                [0, 1, 0]
-            ],
-            [
-                [1, 1, 1],
-                [1, 0, 0]
-            ],
-            [
-                [1, 1, 1],
-                [0, 0, 1]
-            ],
-            [
-                [1, 1, 0],
-                [0, 1, 1]
-            ],
-            [
-                [0, 1, 1],
-                [1, 1, 0]
-            ]
-        ];
-        
-        let board = [];
-        let currentPiece = null;
-        let nextPiece = null;
-        let score = 0;
-        let level = 1;
-        let gameInterval = null;
-        let isGameOver = false;
-        let isPaused = false;
-        let soundEnabled = true;
-        
-        let audioContext = null;
-        
-        function initAudio() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
-        
-        function playSound(type) {
-            if (!soundEnabled || !audioContext) return;
-            
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            switch(type) {
-                case 'move':
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.1);
-                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.1);
-                    break;
-                    
-                case 'rotate':
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.1);
-                    break;
-                    
-                case 'drop':
-                    oscillator.type = 'sawtooth';
-                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    break;
-                    
-                case 'clear':
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
-                    break;
-                    
-                case 'gameover':
-                    oscillator.type = 'sawtooth';
-                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 1);
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 1);
-                    break;
-                    
-                case 'levelup':
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(500, audioContext.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.2);
-                    oscillator.frequency.setValueAtTime(700, audioContext.currentTime + 0.3);
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.4);
-                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.5);
-                    break;
-            }
-        }
-        
-        function initBoard() {
-            board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-        }
-        
-        function createPiece() {
-            const shapeIndex = Math.floor(Math.random() * SHAPES.length);
-            const colorIndex = Math.floor(Math.random() * COLORS.length);
-            return {
-                shape: JSON.parse(JSON.stringify(SHAPES[shapeIndex])),
-                color: colorIndex,
-                x: Math.floor(COLS / 2) - Math.floor(SHAPES[shapeIndex][0].length / 2),
-                y: 0
-            };
-        }
-        
-        function drawBlock(context, x, y, colorIndex, size) {
-            const color = COLORS[colorIndex];
-            context.fillStyle = color;
-            context.fillRect(x * size, y * size, size, size);
-            
-            context.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            context.fillRect(x * size + 2, y * size + 2, size - 8, size - 8);
-            
-            context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-            context.lineWidth = 2;
-            context.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2);
-        }
-        
-        function drawBoard() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.strokeStyle = '#1a1a2e';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= COLS; i++) {
-                ctx.beginPath();
-                ctx.moveTo(i * BLOCK_SIZE, 0);
-                ctx.lineTo(i * BLOCK_SIZE, canvas.height);
-                ctx.stroke();
-            }
-            for (let i = 0; i <= ROWS; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, i * BLOCK_SIZE);
-                ctx.lineTo(canvas.width, i * BLOCK_SIZE);
-                ctx.stroke();
-            }
-            
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    if (board[y][x] !== 0) {
-                        drawBlock(ctx, x, y, board[y][x] - 1, BLOCK_SIZE);
-                    }
-                }
-            }
-            
-            if (currentPiece && !isGameOver) {
-                const ghostY = getGhostY();
-                ctx.globalAlpha = 0.3;
-                for (let y = 0; y < currentPiece.shape.length; y++) {
-                    for (let x = 0; x < currentPiece.shape[y].length; x++) {
-                        if (currentPiece.shape[y][x]) {
-                            drawBlock(ctx, currentPiece.x + x, ghostY + y, currentPiece.color, BLOCK_SIZE);
-                        }
-                    }
-                }
-                ctx.globalAlpha = 1;
-                
-                for (let y = 0; y < currentPiece.shape.length; y++) {
-                    for (let x = 0; x < currentPiece.shape[y].length; x++) {
-                        if (currentPiece.shape[y][x]) {
-                            drawBlock(ctx, currentPiece.x + x, currentPiece.y + y, currentPiece.color, BLOCK_SIZE);
-                        }
-                    }
-                }
-            }
-        }
-        
-        function getGhostY() {
-            let ghostY = currentPiece.y;
-            while (!checkCollision(currentPiece.x, ghostY + 1, currentPiece.shape)) {
-                ghostY++;
-            }
-            return ghostY;
-        }
-        
-        function drawNextPiece() {
-            nextCtx.fillStyle = '#000';
-            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-            
-            if (nextPiece) {
-                const offsetX = (nextCanvas.width / NEXT_BLOCK_SIZE - nextPiece.shape[0].length) / 2;
-                const offsetY = (nextCanvas.height / NEXT_BLOCK_SIZE - nextPiece.shape.length) / 2;
-                
-                for (let y = 0; y < nextPiece.shape.length; y++) {
-                    for (let x = 0; x < nextPiece.shape[y].length; x++) {
-                        if (nextPiece.shape[y][x]) {
-                            drawBlock(nextCtx, offsetX + x, offsetY + y, nextPiece.color, NEXT_BLOCK_SIZE);
-                        }
-                    }
-                }
-            }
-        }
-        
-        function checkCollision(newX, newY, shape) {
-            for (let y = 0; y < shape.length; y++) {
-                for (let x = 0; x < shape[y].length; x++) {
-                    if (shape[y][x]) {
-                        const boardX = newX + x;
-                        const boardY = newY + y;
-                        
-                        if (boardX < 0 || boardX >= COLS || boardY >= ROWS) {
-                            return true;
-                        }
-                        
-                        if (boardY >= 0 && board[boardY][boardX] !== 0) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        
-        function movePiece(dx, dy) {
-            if (!checkCollision(currentPiece.x + dx, currentPiece.y + dy, currentPiece.shape)) {
-                currentPiece.x += dx;
-                currentPiece.y += dy;
-                playSound('move');
-                drawBoard();
-                return true;
-            }
-            return false;
-        }
-        
-        function rotatePiece() {
-            const rotated = [];
-            for (let x = 0; x < currentPiece.shape[0].length; x++) {
-                rotated[x] = [];
-                for (let y = currentPiece.shape.length - 1; y >= 0; y--) {
-                    rotated[x].push(currentPiece.shape[y][x]);
-                }
-            }
-            
-            if (!checkCollision(currentPiece.x, currentPiece.y, rotated)) {
-                currentPiece.shape = rotated;
-                playSound('rotate');
-                drawBoard();
-            } else {
-                if (!checkCollision(currentPiece.x - 1, currentPiece.y, rotated)) {
-                    currentPiece.x -= 1;
-                    currentPiece.shape = rotated;
-                    playSound('rotate');
-                    drawBoard();
-                } else if (!checkCollision(currentPiece.x + 1, currentPiece.y, rotated)) {
-                    currentPiece.x += 1;
-                    currentPiece.shape = rotated;
-                    playSound('rotate');
-                    drawBoard();
-                }
-            }
-        }
-        
-        function hardDrop() {
-            while (movePiece(0, 1)) {
-                score += 2;
-            }
-            playSound('drop');
-            lockPiece();
-        }
-        
-        function lockPiece() {
-            for (let y = 0; y < currentPiece.shape.length; y++) {
-                for (let x = 0; x < currentPiece.shape[y].length; x++) {
-                    if (currentPiece.shape[y][x]) {
-                        const boardY = currentPiece.y + y;
-                        const boardX = currentPiece.x + x;
-                        
-                        if (boardY < 0) {
-                            gameOver();
-                            return;
-                        }
-                        
-                        board[boardY][boardX] = currentPiece.color + 1;
-                    }
-                }
-            }
-            
-            clearLines();
-            spawnPiece();
-        }
-        
-        function clearLines() {
-            let linesCleared = 0;
-            
-            for (let y = ROWS - 1; y >= 0; y--) {
-                if (board[y].every(cell => cell !== 0)) {
-                    board.splice(y, 1);
-                    board.unshift(Array(COLS).fill(0));
-                    linesCleared++;
-                    y++;
-                }
-            }
-            
-            if (linesCleared > 0) {
-                playSound('clear');
-                const lineScores = [0, 100, 300, 500, 800];
-                score += lineScores[linesCleared] * level;
-                
-                const newLevel = Math.floor(score / 1000) + 1;
-                if (newLevel > level) {
-                    level = newLevel;
-                    playSound('levelup');
-                    updateSpeed();
-                }
-                
-                updateUI();
-            }
-        }
-        
-        function spawnPiece() {
-            currentPiece = nextPiece;
-            nextPiece = createPiece();
-            
-            if (checkCollision(currentPiece.x, currentPiece.y, currentPiece.shape)) {
-                gameOver();
-            }
-            
-            drawBoard();
-            drawNextPiece();
-        }
-        
-        function updateUI() {
-            scoreElement.textContent = score;
-            levelElement.textContent = level;
-        }
-        
-        function updateSpeed() {
-            if (gameInterval) {
-                clearInterval(gameInterval);
-            }
-            const speed = Math.max(100, 800 - (level - 1) * 100);
-            gameInterval = setInterval(gameLoop, speed);
-        }
-        
-        function gameLoop() {
-            if (!isPaused && !isGameOver) {
-                if (!movePiece(0, 1)) {
-                    lockPiece();
-                }
-            }
-        }
-        
-        function startGame() {
-            initAudio();
-            initBoard();
-            score = 0;
-            level = 1;
-            isGameOver = false;
-            isPaused = false;
-            
-            updateUI();
-            
-            currentPiece = createPiece();
-            nextPiece = createPiece();
-            
-            drawBoard();
-            drawNextPiece();
-            
-            if (gameInterval) {
-                clearInterval(gameInterval);
-            }
-            gameInterval = setInterval(gameLoop, 800);
-            
-            startOverlay.classList.add('hide');
-            gameOverOverlay.classList.remove('show');
-        }
-        
-        function gameOver() {
-            isGameOver = true;
-            if (gameInterval) {
-                clearInterval(gameInterval);
-                gameInterval = null;
-            }
-            playSound('gameover');
-            finalScoreElement.textContent = score;
-            gameOverOverlay.classList.add('show');
-        }
-        
-        function togglePause() {
-            if (isGameOver) return;
-            
-            isPaused = !isPaused;
-            btnPause.textContent = isPaused ? '继续' : '暂停';
-            
-            if (isPaused) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#e94560';
-                ctx.font = '24px "Courier New", monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('暂停中', canvas.width / 2, canvas.height / 2);
-            } else {
-                drawBoard();
-            }
-        }
-        
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            btnSound.textContent = soundEnabled ? '音效: 开' : '音效: 关';
-        }
-        
-        document.addEventListener('keydown', (e) => {
-            if (isGameOver) return;
-            
-            switch(e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    if (!isPaused) movePiece(-1, 0);
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    if (!isPaused) movePiece(1, 0);
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    if (!isPaused) {
-                        if (movePiece(0, 1)) {
-                            score += 1;
-                            updateUI();
-                        }
-                    }
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    if (!isPaused) rotatePiece();
-                    break;
-                case ' ':
-                    e.preventDefault();
-                    if (!isPaused) hardDrop();
-                    break;
-                case 'p':
-                case 'P':
-                    e.preventDefault();
-                    togglePause();
-                    break;
-            }
-        });
-        
-        startGameBtn.addEventListener('click', startGame);
-        restartGameBtn.addEventListener('click', startGame);
-        btnNewGame.addEventListener('click', startGame);
-        btnSound.addEventListener('click', toggleSound);
-        btnPause.addEventListener('click', togglePause);
-        
-        function setupButtonEvent(button, action, isToggle = false) {
-            button.addEventListener('mousedown', () => {
-                button.classList.add('active');
-                if (!isToggle) action();
-            });
-            
-            button.addEventListener('mouseup', () => {
-                button.classList.remove('active');
-                if (isToggle) action();
-            });
-            
-            button.addEventListener('mouseleave', () => {
-                button.classList.remove('active');
-            });
-            
-            button.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                button.classList.add('active');
-                if (!isToggle) action();
-            });
-            
-            button.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                button.classList.remove('active');
-                if (isToggle) action();
-            });
-        }
-        
-        setupButtonEvent(btnLeft, () => { if (!isPaused && !isGameOver) movePiece(-1, 0); });
-        setupButtonEvent(btnRight, () => { if (!isPaused && !isGameOver) movePiece(1, 0); });
-        setupButtonEvent(btnDown, () => { 
-            if (!isPaused && !isGameOver) {
-                if (movePiece(0, 1)) {
-                    score += 1;
-                    updateUI();
-                }
-            }
-        });
-        setupButtonEvent(btnRotate, () => { if (!isPaused && !isGameOver) rotatePiece(); });
-        setupButtonEvent(btnHardDrop, () => { if (!isPaused && !isGameOver) hardDrop(); });
-        
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        nextCtx.fillStyle = '#000';
-        nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-    </script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/elements.js"></script>
+    <script src="js/enemies.js"></script>
+    <script src="js/towers.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
