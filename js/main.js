@@ -1,16 +1,20 @@
 let game = null;
 let uiManager = null;
 
+let canvas = null;
+let nextCanvas = null;
+
 function initGame() {
+    canvas = document.getElementById('gameCanvas');
+    nextCanvas = document.getElementById('nextCanvas');
+
     game = new Game();
     uiManager = new UIManager(game);
-
-    const canvas = document.getElementById('gameCanvas');
-    const nextCanvas = document.getElementById('nextCanvas');
     
-    if (canvas && nextCanvas) {
-        game.init(canvas, nextCanvas);
-    }
+    window.game = game;
+    window.uiManager = uiManager;
+    window.canvas = canvas;
+    window.nextCanvas = nextCanvas;
 
     addExtraButtons();
 }

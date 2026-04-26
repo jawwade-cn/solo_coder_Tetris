@@ -27,7 +27,8 @@ class UIManager {
             btnHardDrop: document.getElementById('btnHardDrop'),
             btnAchievements: document.getElementById('btnAchievements'),
             btnLevels: document.getElementById('btnLevels'),
-            btnStats: document.getElementById('btnStats')
+            btnStats: document.getElementById('btnStats'),
+            btnLevelSelect: document.getElementById('btnLevelSelect')
         };
     }
 
@@ -35,15 +36,50 @@ class UIManager {
         const {
             startGameBtn, restartGameBtn, btnNewGame, btnSound, btnPause,
             btnRotate, btnLeft, btnRight, btnDown, btnHardDrop,
-            btnAchievements, btnLevels, btnStats
+            btnAchievements, btnLevels, btnStats, btnLevelSelect
         } = this.elements;
 
+        console.log('UIManager: Setting up event listeners...');
+        console.log('startGameBtn:', startGameBtn);
+        console.log('restartGameBtn:', restartGameBtn);
+
         if (startGameBtn) {
-            startGameBtn.addEventListener('click', () => this.startGame(1));
+            startGameBtn.addEventListener('click', (e) => {
+                console.log('Start Game button clicked');
+                try {
+                    this.startGame(1);
+                } catch (err) {
+                    console.error('Error starting game:', err);
+                    alert('启动游戏失败: ' + err.message);
+                }
+            });
+        } else {
+            console.warn('startGameBtn not found!');
         }
+        
         if (restartGameBtn) {
-            restartGameBtn.addEventListener('click', () => this.startGame(1));
+            restartGameBtn.addEventListener('click', () => {
+                console.log('Restart Game button clicked');
+                try {
+                    this.startGame(1);
+                } catch (err) {
+                    console.error('Error restarting game:', err);
+                    alert('重新开始失败: ' + err.message);
+                }
+            });
         }
+        
+        if (btnLevelSelect) {
+            btnLevelSelect.addEventListener('click', () => {
+                console.log('Level Select button clicked (game over)');
+                try {
+                    this.showLevelSelect();
+                } catch (err) {
+                    console.error('Error showing level select:', err);
+                }
+            });
+        }
+        
         if (btnNewGame) {
             btnNewGame.addEventListener('click', () => this.showLevelSelect());
         }
@@ -224,29 +260,31 @@ class UIManager {
     showLevelSelect() {
         const unlockedLevels = getUnlockedLevels();
         const totalStats = getTotalStats();
+        const self = this;
 
-        let html = '<div style="text-align: center; max-height: 80vh; overflow-y: auto;">';
+        let html = '<div id="levelSelectContainer" style="text-align: center; max-height: 80vh; overflow-y: auto;">';
         html += '<h2 style="color: #e94560; margin-bottom: 20px;">🎮 关卡选择</h2>';
         
-        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 10px;">';
+        html += '<div id="levelCards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 10px;">';
         
         for (const level of unlockedLevels) {
             const isUnlocked = level.unlocked;
             const bestScore = level.bestScore || 0;
             const perfect = level.perfect;
 
-            html += `<div style="
-                background: ${isUnlocked ? level.background : '#333'};
-                border: 4px solid ${isUnlocked ? '#00d4ff' : '#555'};
-                border-radius: 10px;
-                padding: 20px;
-                text-align: center;
-                cursor: ${isUnlocked ? 'pointer' : 'not-allowed'};
-                opacity: ${isUnlocked ? 1 : 0.6};
-                transition: transform 0.2s;
-            " onclick="${isUnlocked ? `uiManager.startGame(${level.id}); uiManager.closeModal();` : ''}"
-            onmouseover="this.style.transform='scale(1.02)'"
-            onmouseout="this.style.transform='scale(1)'">
+            html += `<div class="level-card" 
+                data-level-id="${level.id}"
+                data-unlocked="${isUnlocked}"
+                style="
+                    background: ${isUnlocked ? level.background : '#333'};
+                    border: 4px solid ${isUnlocked ? '#00d4ff' : '#555'};
+                    border-radius: 10px;
+                    padding: 20px;
+                    text-align: center;
+                    cursor: ${isUnlocked ? 'pointer' : 'not-allowed'};
+                    opacity: ${isUnlocked ? 1 : 0.6};
+                    transition: transform 0.2s;
+                ">
                 <div style="font-size: 32px; margin-bottom: 10px;">${isUnlocked ? '🎯' : '🔒'}</div>
                 <div style="color: #fff; font-weight: bold; font-size: 16px; margin-bottom: 5px;">
                     第${level.id}关: ${level.name}
@@ -269,6 +307,32 @@ class UIManager {
         html += '</div></div>';
 
         this.showModal(html);
+
+        setTimeout(() => {
+            const levelCards = document.querySelectorAll('.level-card');
+            levelCards.forEach(card => {
+                const levelId = parseInt(card.dataset.levelId);
+                const isUnlocked = card.dataset.unlocked === 'true';
+                
+                if (isUnlocked) {
+                    card.addEventListener('mouseenter', () => {
+                        card.style.transform = 'scale(1.02)';
+                    });
+                    card.addEventListener('mouseleave', () => {
+                        card.style.transform = 'scale(1)';
+                    });
+                    card.addEventListener('click', () => {
+                        try {
+                            self.startGame(levelId);
+                            self.closeModal();
+                        } catch (e) {
+                            console.error('Error starting game:', e);
+                            alert('启动游戏时出错: ' + e.message);
+                        }
+                    });
+                }
+            });
+        }, 100);
     }
 
     showStats() {

@@ -1,11 +1,15 @@
 class Enemy {
-    constructor(type, path, startDelay = 0) {
+    constructor(type, path, startDelay = 0, gameCanvas = null) {
         this.type = type;
         this.config = ENEMY_TYPES[type];
         this.x = -30;
         this.y = path.y;
         this.baseY = path.y;
-        this.targetX = canvas.width + 30;
+        
+        const canvasWidth = gameCanvas ? gameCanvas.width : 
+                           (window.canvas ? window.canvas.width : 200);
+        this.targetX = canvasWidth + 30;
+        
         this.hp = this.config.hp;
         this.maxHp = this.config.hp;
         this.speed = this.config.speed;
@@ -159,6 +163,7 @@ class EnemyManager {
         this.totalEnemiesSpawned = 0;
         this.waveEnemies = 0;
         this.waveKills = 0;
+        this.canvas = null;
     }
 
     reset() {
@@ -168,6 +173,10 @@ class EnemyManager {
         this.totalEnemiesSpawned = 0;
         this.waveEnemies = 0;
         this.waveKills = 0;
+    }
+
+    setCanvas(canvas) {
+        this.canvas = canvas;
     }
 
     startWave(level, waveNum) {
@@ -186,12 +195,12 @@ class EnemyManager {
             const delay = i * 800 + Math.random() * 500;
 
             if (level.bossWave && waveNum === level.bossWave && i === enemiesPerWave - 1) {
-                const boss = new Enemy('BOSS', path, delay);
+                const boss = new Enemy('BOSS', path, delay, this.canvas);
                 boss.hp *= 1.5;
                 boss.maxHp = boss.hp;
                 this.enemies.push(boss);
             } else {
-                this.enemies.push(new Enemy(type, path, delay));
+                this.enemies.push(new Enemy(type, path, delay, this.canvas));
             }
             this.waveEnemies++;
             this.totalEnemiesSpawned++;
