@@ -5,7 +5,7 @@ class Game {
         this.renderer = null;
         this.elementSystem = null;
         this.enemyManager = null;
-        this.towerManager = null;
+        this.heroSystem = null;
         this.stats = null;
         this.achievementManager = null;
 
@@ -18,12 +18,22 @@ class Game {
         this.isPaused = false;
         this.isStarted = false;
 
+        this.phase = GAME_PHASES.PREPARATION;
         this.currentLevel = null;
         this.currentWave = 0;
         this.playerHP = 10;
         this.maxPlayerHP = 10;
         this.waveTransition = false;
         this.waveTransitionTime = 0;
+
+        this.preparationTime = 0;
+        this.preparationTimeLimit = 60;
+        this.preparationPiecesUsed = 0;
+        this.preparationPiecesLimit = 30;
+        this.energy = 0;
+        this.linesCleared = 0;
+
+        this.elementsBoard = [];
 
         this.lastTime = 0;
         this.gameLoopId = null;
@@ -37,9 +47,11 @@ class Game {
         this.elementSystem = new ElementSystem();
         this.enemyManager = new EnemyManager();
         this.enemyManager.setCanvas(canvas);
-        this.towerManager = new TowerManager(this.elementSystem, this.enemyManager);
+        this.heroSystem = new HeroSystem();
         this.stats = new BattleStats();
         this.achievementManager = new AchievementManager();
+
+        this.elementsBoard = Array(ROWS).fill().map(() => Array(COLS).fill(null));
 
         this.renderer.clear();
     }
@@ -49,14 +61,21 @@ class Game {
         if (!this.currentLevel) {
             this.currentLevel = getLevelById(1);
         }
+
+        if (this.currentLevel?.preparation) {
+            this.preparationTimeLimit = this.currentLevel.preparation.timeLimit || 60;
+            this.preparationPiecesLimit = this.currentLevel.preparation.pieceLimit || 30;
+        }
     }
 
     start() {
         initAudio();
         this.elementSystem.init();
         this.enemyManager.reset();
-        this.towerManager.reset();
+        this.heroSystem.reset();
         this.stats.reset();
+
+        this.elementsBoard = Array(ROWS).fill().map(() => Array(COLS).fill(null));
 
         this.score = 0;
         this.level = 1;
@@ -65,6 +84,12 @@ class Game {
         this.isStarted = true;
         this.currentWave = 0;
         this.waveTransition = false;
+
+        this.phase = GAME_PHASES.PREPARATION;
+        this.preparationTime = 0;
+        this.preparationPiecesUsed = 0;
+        this.energy = 0;
+        this.linesCleared = 0;
 
         if (this.currentLevel) {
             this.playerHP = this.currentLevel.startHP;
@@ -79,12 +104,48 @@ class Game {
         this.currentPiece = this.elementSystem.createRandomPiece();
         this.nextPiece = this.elementSystem.createRandomPiece();
 
-        this.startWave();
-
         this.lastTime = performance.now();
         this.gameLoopId = requestAnimationFrame((time) => this.update(time));
 
         this.hideOverlays();
+    }
+
+    switchToBattlePhase() {
+        if (this.phase !== GAME_PHASES.PREPARATION) return;
+
+        this.phase = GAME_PHASES.BATTLE;
+
+        const convertedBoard = [];
+        for (let y = 0; y < ROWS; y++) {
+            convertedBoard[y] = [];
+            for (let x = 0; x < COLS; x++) {
+                const boardValue = this.elementSystem.board[y][x];
+                if (boardValue) {
+                    const elements = ['FIRE', 'WATER', 'EARTH'];
+                    const element = elements[((boardValue - 1) % 3)];
+                    convertedBoard[y][x] = {
+                        element: element,
+                        isMerged: typeof boardValue === 'string',
+                        mergedType: typeof boardValue === 'string' ? boardValue : null
+                    };
+                } else {
+                    convertedBoard[y][x] = null;
+                }
+            }
+        }
+
+        this.heroSystem.convertBoardToHeroes(convertedBoard);
+
+        const enableMerge = this.currentLevel?.preparation?.enableHeroMerge || false;
+        const merged = this.heroSystem.checkAndMerge(enableMerge);
+
+        if (merged.length > 0) {
+            this.stats.addMerges(merged.length);
+        }
+
+        this.startWave();
+
+        playSound('wave');
     }
 
     startWave() {
@@ -110,43 +171,10 @@ class Game {
             }
         }
 
-        if (!this.isPaused && !this.isGameOver && !this.waveTransition) {
-            const enemyResult = this.enemyManager.update(deltaTime);
-            
-            enemyResult.killed.forEach(enemy => {
-                this.score += enemy.reward;
-                this.stats.addKill(enemy.type);
-            });
-
-            enemyResult.reached.forEach(enemy => {
-                this.playerHP -= 1;
-                this.stats.addDamageTaken(10);
-                if (this.playerHP <= 0) {
-                    this.gameOver(false);
-                    return;
-                }
-            });
-
-            const towerResult = this.towerManager.update(currentTime, this.stats);
-            this.towerManager.updateAnimations(currentTime);
-
-            if (towerResult.kills.length > 0) {
-                towerResult.kills.forEach(enemy => {
-                    this.score += enemy.reward;
-                    this.stats.addKill(enemy.type);
-                });
-            }
-
-            if (this.enemyManager.isWaveComplete()) {
-                if (this.currentWave >= this.currentLevel.waves) {
-                    this.gameOver(true);
-                    return;
-                } else {
-                    this.startWave();
-                }
-            }
-
-            this.updateUI();
+        if (this.phase === GAME_PHASES.PREPARATION) {
+            this.updatePreparationPhase(deltaTime, currentTime);
+        } else if (this.phase === GAME_PHASES.BATTLE) {
+            this.updateBattlePhase(deltaTime, currentTime);
         }
 
         this.draw();
@@ -154,26 +182,91 @@ class Game {
         this.gameLoopId = requestAnimationFrame((time) => this.update(time));
     }
 
+    updatePreparationPhase(deltaTime, currentTime) {
+        if (this.isPaused || this.isGameOver) return;
+
+        this.preparationTime += deltaTime / 1000;
+
+        if (this.preparationTime >= this.preparationTimeLimit ||
+            this.preparationPiecesUsed >= this.preparationPiecesLimit) {
+            this.switchToBattlePhase();
+            return;
+        }
+
+        this.updateUI();
+    }
+
+    updateBattlePhase(deltaTime, currentTime) {
+        if (this.isPaused || this.isGameOver || this.waveTransition) return;
+
+        const enemyResult = this.enemyManager.update(deltaTime);
+        
+        enemyResult.killed.forEach(enemy => {
+            this.score += enemy.reward;
+            this.stats.addKill(enemy.type);
+        });
+
+        enemyResult.reached.forEach(enemy => {
+            this.playerHP -= enemy.damage;
+            this.stats.addDamageTaken(enemy.damage * 10);
+            if (this.playerHP <= 0) {
+                this.gameOver(false);
+                return;
+            }
+        });
+
+        const heroResult = this.heroSystem.update(currentTime, this.enemyManager, this.stats);
+
+        if (heroResult.kills.length > 0) {
+            heroResult.kills.forEach(enemy => {
+                this.score += enemy.reward;
+                this.stats.addKill(enemy.type);
+            });
+        }
+
+        if (this.enemyManager.isWaveComplete()) {
+            const totalWaves = this.currentLevel?.battle?.waves || 3;
+            if (this.currentWave >= totalWaves) {
+                this.gameOver(true);
+                return;
+            } else {
+                this.startWave();
+            }
+        }
+
+        this.updateUI();
+    }
+
     draw() {
         this.renderer.clear();
         this.renderer.drawGrid();
         
-        this.towerManager.draw(this.renderer.ctx, performance.now());
-        this.enemyManager.draw(this.renderer.ctx);
-
-        if (this.currentPiece && !this.isGameOver) {
-            const ghostY = this.getGhostY();
-            this.renderer.drawPiece(this.currentPiece, ghostY);
+        if (this.phase === GAME_PHASES.BATTLE) {
+            this.heroSystem.draw(this.renderer.ctx, performance.now());
+            this.enemyManager.draw(this.renderer.ctx);
         }
 
-        this.renderer.drawHP(this.playerHP, this.maxPlayerHP);
-        this.renderer.drawWaveInfo(
-            this.currentWave,
-            this.currentLevel?.waves || 0,
-            this.enemyManager.getAliveEnemies().length
-        );
-
-        this.renderer.drawNextPiece(this.nextPiece);
+        if (this.phase === GAME_PHASES.PREPARATION) {
+            if (this.currentPiece && !this.isGameOver) {
+                const ghostY = this.getGhostY();
+                this.renderer.drawPiece(this.currentPiece, ghostY);
+            }
+            this.renderer.drawNextPiece(this.nextPiece);
+            this.renderer.drawPreparationPhase(
+                this.preparationTime,
+                this.preparationTimeLimit,
+                this.preparationPiecesUsed,
+                this.preparationPiecesLimit,
+                this.energy
+            );
+        } else {
+            this.renderer.drawHP(this.playerHP, this.maxPlayerHP);
+            this.renderer.drawWaveInfo(
+                this.currentWave,
+                this.currentLevel?.battle?.waves || 0,
+                this.enemyManager.getAliveEnemies().length
+            );
+        }
 
         if (this.isPaused) {
             this.renderer.drawPause();
@@ -206,6 +299,7 @@ class Game {
 
     movePiece(dx, dy) {
         if (!this.currentPiece || this.isPaused || this.isGameOver) return false;
+        if (this.phase !== GAME_PHASES.PREPARATION) return false;
 
         if (!this.elementSystem.checkCollision(
             this.currentPiece.x + dx, 
@@ -222,6 +316,7 @@ class Game {
 
     rotatePiece() {
         if (!this.currentPiece || this.isPaused || this.isGameOver) return;
+        if (this.phase !== GAME_PHASES.PREPARATION) return;
 
         const rotated = this.currentPiece.rotate();
 
@@ -243,6 +338,7 @@ class Game {
 
     hardDrop() {
         if (!this.currentPiece || this.isPaused || this.isGameOver) return;
+        if (this.phase !== GAME_PHASES.PREPARATION) return;
 
         let distance = 0;
         while (this.movePiece(0, 1)) {
@@ -256,30 +352,11 @@ class Game {
     lockPiece() {
         if (!this.currentPiece) return;
 
-        const towers = this.elementSystem.lockPiece(this.currentPiece);
-        this.towerManager.addTowers(towers);
+        this.elementSystem.lockPiece(this.currentPiece);
         this.stats.addTowerBuild();
         this.stats.addPieceDrop();
         this.stats.addElementUse(this.currentPiece.element);
-
-        if (this.currentLevel?.enableMerge) {
-            for (let y = 0; y < this.currentPiece.shape.length; y++) {
-                for (let x = 0; x < this.currentPiece.shape[y].length; x++) {
-                    if (this.currentPiece.shape[y][x]) {
-                        const boardX = this.currentPiece.x + x;
-                        const boardY = this.currentPiece.y + y;
-                        
-                        if (boardY >= 0 && boardY < ROWS && boardX >= 0 && boardX < COLS) {
-                            const merged = this.elementSystem.tryMerge(boardX, boardY);
-                            if (merged) {
-                                this.stats.addMerge(merged.type);
-                                playSound('merge');
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        this.preparationPiecesUsed++;
 
         this.clearLines();
         this.spawnPiece();
@@ -290,11 +367,20 @@ class Game {
         
         if (linesCleared.length > 0) {
             playSound('clear');
+            this.linesCleared += linesCleared.length;
             this.stats.addLinesCleared(linesCleared.length);
+
+            const reward = CLEAR_REWARDS[Math.min(linesCleared.length, 4)] || CLEAR_REWARDS[1];
+            const scoreGain = reward.score * this.level;
+            const energyGain = reward.energy;
             
-            const lineScores = [0, 100, 300, 500, 800];
-            const scoreGain = lineScores[Math.min(linesCleared.length, 4)] * this.level;
             this.score += scoreGain;
+            this.energy += energyGain;
+
+            if (linesCleared.length === 4) {
+                this.stats.addTetris();
+                playSound('levelup');
+            }
 
             const newLevel = Math.floor(this.score / 1000) + 1;
             if (newLevel > this.level) {
@@ -317,16 +403,25 @@ class Game {
             this.currentPiece.y, 
             this.currentPiece.shape
         )) {
-            this.gameOver(false);
+            if (this.phase === GAME_PHASES.PREPARATION) {
+                this.switchToBattlePhase();
+            } else {
+                this.gameOver(false);
+            }
         }
     }
 
     updateUI() {
         const scoreElement = document.getElementById('score');
         const levelElement = document.getElementById('level');
+        const phaseElement = document.getElementById('phase');
         
         if (scoreElement) scoreElement.textContent = this.score;
         if (levelElement) levelElement.textContent = this.level;
+        if (phaseElement) {
+            phaseElement.textContent = this.phase === GAME_PHASES.PREPARATION ? '准备阶段' : '战斗阶段';
+            phaseElement.className = `phase-indicator ${this.phase === GAME_PHASES.PREPARATION ? 'preparation' : 'battle'}`;
+        }
     }
 
     gameOver(won) {
@@ -358,7 +453,8 @@ class Game {
             merges: finalStats.merges,
             time: finalStats.duration,
             levelCompleted: won ? this.currentLevel?.id : null,
-            perfectDefense: finalStats.perfectDefense
+            perfectDefense: finalStats.perfectDefense,
+            tetrisCount: finalStats.tetrisCount
         });
 
         const newAchievements = this.achievementManager.checkAchievements(
@@ -380,7 +476,7 @@ class Game {
         }
 
         if (finalScoreElement) {
-            finalScoreElement.textContent = `${this.score} (${stats.kills}击杀, ${stats.merges}融合)`;
+            finalScoreElement.textContent = `${this.score} (${stats.kills}击杀, ${stats.merges}合成, ${this.linesCleared}消除)`;
         }
 
         if (gameOverOverlay) {
@@ -409,6 +505,12 @@ class Game {
         const btnPause = document.getElementById('btnPause');
         if (btnPause) {
             btnPause.textContent = this.isPaused ? '继续' : '暂停';
+        }
+    }
+
+    skipPreparation() {
+        if (this.phase === GAME_PHASES.PREPARATION) {
+            this.switchToBattlePhase();
         }
     }
 }

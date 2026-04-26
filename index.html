@@ -609,12 +609,19 @@
                 <p>⬇️ 加速下落</p>
                 <p>空格键 硬降 | P 暂停</p>
                 
-                <h3>🏰 塔防玩法</h3>
-                <p>放置的方块会变成防御塔</p>
-                <p>防御塔自动攻击路过的敌人</p>
-                <p>保护生命值，击败所有敌人！</p>
+                <h3>⏱️ 准备阶段</h3>
+                <p>在限定时间内摆放方块</p>
+                <p>消除整行获得分数和能量</p>
+                <p>消除4行 (Tetris) 获得大量奖励</p>
+                <p>放置的方块会变成英雄！</p>
                 
-                <h3>✨ 元素系统</h3>
+                <h3>⚔️ 战斗阶段</h3>
+                <p>敌人从顶部竖向出现</p>
+                <p>英雄自动攻击范围内的敌人</p>
+                <p>敌人到底部会扣血</p>
+                <p>击败所有敌人获得胜利！</p>
+                
+                <h3>✨ 元素英雄</h3>
                 <div class="element-info">
                     <div class="element-item">
                         <div class="element-icon">🔥</div>
@@ -630,10 +637,10 @@
                     </div>
                 </div>
                 
-                <h3>🔮 元素融合</h3>
-                <p>相同或相邻元素会融合成更强形态</p>
-                <p>火+火=熔岩 | 水+水=海啸 | 土+土=地震</p>
-                <p>火+水=蒸汽 | 火+土=岩浆 | 水+土=泥流</p>
+                <h3>🔮 英雄合成</h3>
+                <p>3个相邻相同英雄可合成更高等级</p>
+                <p>Lv1 → Lv2 → Lv3 (伤害x4)</p>
+                <p>不同元素相邻可产生融合英雄</p>
             </div>
             
             <button class="game-btn" id="startGameBtn">开始游戏</button>
@@ -728,7 +735,7 @@
     <script src="js/audio.js"></script>
     <script src="js/elements.js"></script>
     <script src="js/enemies.js"></script>
-    <script src="js/towers.js"></script>
+    <script src="js/heroes.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
