@@ -82,6 +82,10 @@ class Game {
 
         this.elementsBoard = Array(ROWS).fill().map(() => Array(COLS).fill(null));
 
+        if (!this.currentLevel) {
+            this.setLevel(1);
+        }
+
         this.score = 0;
         this.level = 1;
         this.isGameOver = false;
@@ -98,13 +102,8 @@ class Game {
         this.dropCounter = 0;
         this.dropInterval = 1000;
 
-        if (this.currentLevel) {
-            this.playerHP = this.currentLevel.startHP;
-            this.maxPlayerHP = this.currentLevel.startHP;
-        } else {
-            this.playerHP = 10;
-            this.maxPlayerHP = 10;
-        }
+        this.playerHP = this.currentLevel.startHP;
+        this.maxPlayerHP = this.currentLevel.startHP;
 
         this.updateUI();
 
