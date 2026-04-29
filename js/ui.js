@@ -129,16 +129,20 @@ class UIManager {
 
         switch (e.key) {
             case 'ArrowLeft':
-                e.preventDefault();
-                if (!this.game.isPaused) this.game.movePiece(-1, 0);
+                if (!this.game.isPaused) {
+                    e.preventDefault();
+                    this.game.movePiece(-1, 0);
+                }
                 break;
             case 'ArrowRight':
-                e.preventDefault();
-                if (!this.game.isPaused) this.game.movePiece(1, 0);
+                if (!this.game.isPaused) {
+                    e.preventDefault();
+                    this.game.movePiece(1, 0);
+                }
                 break;
             case 'ArrowDown':
-                e.preventDefault();
                 if (!this.game.isPaused) {
+                    e.preventDefault();
                     if (this.game.movePiece(0, 1)) {
                         this.game.score += 1;
                         this.game.updateUI();
@@ -146,12 +150,16 @@ class UIManager {
                 }
                 break;
             case 'ArrowUp':
-                e.preventDefault();
-                if (!this.game.isPaused) this.game.rotatePiece();
+                if (!this.game.isPaused) {
+                    e.preventDefault();
+                    this.game.rotatePiece();
+                }
                 break;
             case ' ':
-                e.preventDefault();
-                if (!this.game.isPaused) this.game.hardDrop();
+                if (!this.game.isPaused) {
+                    e.preventDefault();
+                    this.game.hardDrop();
+                }
                 break;
             case 'p':
             case 'P':

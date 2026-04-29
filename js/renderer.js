@@ -33,17 +33,72 @@ class GameRenderer {
         }
     }
 
-    drawBoard(board) {
+    drawBoard(board, elementBoard) {
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
-                if (board[y][x] !== 0) {
-                    const colorIndex = typeof board[y][x] === 'number' && board[y][x] <= COLORS.length
-                        ? board[y][x] - 1
-                        : 0;
-                    this.drawBlock(this.ctx, x, y, colorIndex, BLOCK_SIZE);
+                const cellValue = board[y][x];
+                if (cellValue !== 0) {
+                    const tower = elementBoard?.[y]?.[x];
+                    if (tower) {
+                        this.drawTowerBlock(this.ctx, x, y, tower);
+                    } else if (typeof cellValue === 'string') {
+                        const mergedConfig = MERGED_ELEMENTS[cellValue];
+                        if (mergedConfig) {
+                            this.drawMergedBlock(this.ctx, x, y, mergedConfig);
+                        }
+                    } else {
+                        const colorIndex = cellValue <= COLORS.length ? cellValue - 1 : 0;
+                        this.drawBlock(this.ctx, x, y, colorIndex, BLOCK_SIZE);
+                    }
                 }
             }
         }
+    }
+
+    drawTowerBlock(context, x, y, tower) {
+        const color = tower.color || ELEMENTS[tower.element]?.color || '#666';
+        context.fillStyle = color;
+        context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        
+        context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        context.fillRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 8, BLOCK_SIZE - 8);
+        
+        context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        context.lineWidth = 2;
+        context.strokeRect(x * BLOCK_SIZE + 1, y * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+
+        const elementSymbol = {
+            FIRE: '🔥',
+            WATER: '💧',
+            EARTH: '🌍'
+        };
+
+        if (tower.isMerged) {
+            context.fillStyle = '#FFD700';
+            context.font = '10px sans-serif';
+            context.textAlign = 'center';
+            context.fillText('★', x * BLOCK_SIZE + BLOCK_SIZE / 2, y * BLOCK_SIZE + BLOCK_SIZE / 2 + 3);
+        } else if (tower.element && elementSymbol[tower.element]) {
+            context.font = '12px sans-serif';
+            context.textAlign = 'center';
+            context.fillText(elementSymbol[tower.element], x * BLOCK_SIZE + BLOCK_SIZE / 2, y * BLOCK_SIZE + BLOCK_SIZE / 2 + 4);
+        }
+    }
+
+    drawMergedBlock(context, x, y, mergedConfig) {
+        context.fillStyle = mergedConfig.color;
+        context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        
+        context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        context.fillRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 8, BLOCK_SIZE - 8);
+        
+        context.strokeStyle = '#FFD700';
+        context.lineWidth = 2;
+        context.strokeRect(x * BLOCK_SIZE + 1, y * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+
+        context.font = '10px sans-serif';
+        context.textAlign = 'center';
+        context.fillText(mergedConfig.symbol || '★', x * BLOCK_SIZE + BLOCK_SIZE / 2, y * BLOCK_SIZE + BLOCK_SIZE / 2 + 3);
     }
 
     drawBlock(context, x, y, colorIndex, size) {
@@ -152,26 +207,27 @@ class GameRenderer {
         ctx.fillRect(5, 5, this.canvas.width - 10, 50);
 
         const timePercent = time / timeLimit;
-        const timeColor = timePercent > 0.5 ? '#4CAF50' : timePercent > 0.25 ? '#FF9800' : '#F44336';
+        const timeRemaining = 1 - timePercent;
+        const timeColor = timeRemaining > 0.5 ? '#4CAF50' : timeRemaining > 0.25 ? '#FF9800' : '#F44336';
         
         ctx.fillStyle = '#333';
         ctx.fillRect(10, 10, 180, 10);
         ctx.fillStyle = timeColor;
-        ctx.fillRect(10, 10, 180 * (1 - timePercent), 10);
+        ctx.fillRect(10, 10, 180 * timeRemaining, 10);
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 10px "Courier New"';
         ctx.textAlign = 'left';
         ctx.fillText(`时间: ${Math.ceil(timeLimit - time)}s`, 10, 32);
 
-        const piecesPercent = piecesUsed / piecesLimit;
-        const piecesColor = piecesPercent < 0.5 ? '#4CAF50' : piecesPercent < 0.8 ? '#FF9800' : '#F44336';
+        const piecesRemaining = 1 - (piecesUsed / piecesLimit);
+        const piecesColor = piecesRemaining > 0.5 ? '#4CAF50' : piecesRemaining > 0.2 ? '#FF9800' : '#F44336';
         
         ctx.fillStyle = '#333';
         ctx.fillRect(centerX - 90, 10, 180, 10);
         ctx.fillStyle = piecesColor;
-        ctx.fillRect(centerX - 90, 10, 180 * piecesPercent, 10);
+        ctx.fillRect(centerX - 90, 10, 180 * piecesRemaining, 10);
         ctx.textAlign = 'center';
-        ctx.fillText(`方块: ${piecesUsed}/${piecesLimit}`, centerX, 32);
+        ctx.fillText(`方块: ${piecesLimit - piecesUsed}/${piecesLimit}`, centerX, 32);
 
         ctx.textAlign = 'right';
         ctx.fillStyle = '#FFD700';

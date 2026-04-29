@@ -12,14 +12,14 @@ class AchievementManager {
             newlyUnlocked.push(this.getAchievement('first_win'));
         }
 
-        if (!this.isUnlocked('combo_5') && stats.maxCombo >= 5) {
-            this.unlock('combo_5');
-            newlyUnlocked.push(this.getAchievement('combo_5'));
+        if (!this.isUnlocked('tetris') && stats.tetrisCount >= 1) {
+            this.unlock('tetris');
+            newlyUnlocked.push(this.getAchievement('tetris'));
         }
 
-        if (!this.isUnlocked('merge_10') && totalStats.totalMerges >= 10) {
-            this.unlock('merge_10');
-            newlyUnlocked.push(this.getAchievement('merge_10'));
+        if (!this.isUnlocked('merge_hero') && totalStats.totalMerges >= 5) {
+            this.unlock('merge_hero');
+            newlyUnlocked.push(this.getAchievement('merge_hero'));
         }
 
         if (!this.isUnlocked('kill_100') && totalStats.totalKills >= 100) {

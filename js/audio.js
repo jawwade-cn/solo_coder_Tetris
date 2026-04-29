@@ -5,6 +5,11 @@ function initAudio() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
+    
+    const settings = getSettings();
+    if (settings.soundEnabled !== undefined) {
+        soundEnabled = settings.soundEnabled;
+    }
 }
 
 function playSound(type) {
@@ -141,6 +146,9 @@ function playSound(type) {
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
+    const settings = getSettings();
+    settings.soundEnabled = soundEnabled;
+    saveSettings(settings);
     return soundEnabled;
 }
 

@@ -651,6 +651,10 @@
         <div class="game-over-content">
             <h1 class="game-over-title" id="gameOverTitle">游戏结束</h1>
             <p class="game-over-score">最终得分: <span id="finalScore">0</span></p>
+            <div id="achievementNotice" style="display: none; margin: 20px 0; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 2px solid #FFD700; border-radius: 8px;">
+                <h3 style="color: #FFD700; margin-bottom: 10px;">🏆 成就解锁</h3>
+                <div id="achievementList" style="color: #fff; text-align: left; max-height: 150px; overflow-y: auto;"></div>
+            </div>
             <div style="margin-bottom: 20px;">
                 <button class="game-btn" id="restartGameBtn">再来一局</button>
             </div>

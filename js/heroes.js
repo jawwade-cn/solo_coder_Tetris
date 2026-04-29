@@ -312,11 +312,13 @@ class HeroSystem {
             const centerX = x + BLOCK_SIZE / 2;
             const centerY = y + BLOCK_SIZE / 2;
 
-            ctx.strokeStyle = hero.getColor() + '40';
+            ctx.strokeStyle = hero.getColor() + '80';
             ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.arc(centerX, centerY, hero.getRange(), 0, Math.PI * 2);
             ctx.stroke();
+            ctx.setLineDash([]);
 
             ctx.fillStyle = hero.getColor();
             ctx.fillRect(x + 1, y + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);

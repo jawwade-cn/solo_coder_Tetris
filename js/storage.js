@@ -6,6 +6,26 @@ const STORAGE_KEYS = {
     SETTINGS: 'tetris_tower_settings'
 };
 
+function isValidNumber(value) {
+    return typeof value === 'number' && !isNaN(value) && isFinite(value);
+}
+
+function getValidNumber(value, defaultValue) {
+    return isValidNumber(value) ? value : defaultValue;
+}
+
+function getValidArray(value, defaultValue) {
+    return Array.isArray(value) ? value : defaultValue;
+}
+
+function getValidObject(value, defaultValue) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : defaultValue;
+}
+
+function getValidBoolean(value, defaultValue) {
+    return typeof value === 'boolean' ? value : defaultValue;
+}
+
 function saveToStorage(key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
@@ -47,7 +67,12 @@ function saveLevelProgress(levelId, stats) {
 }
 
 function getUnlockedAchievements() {
-    return loadFromStorage(STORAGE_KEYS.ACHIEVEMENTS, []);
+    const rawData = loadFromStorage(STORAGE_KEYS.ACHIEVEMENTS, null);
+    if (!rawData) {
+        return [];
+    }
+    const validated = getValidArray(rawData, []);
+    return validated.filter(x => typeof x === 'string');
 }
 
 function unlockAchievement(achievementId) {
@@ -61,7 +86,8 @@ function unlockAchievement(achievementId) {
 }
 
 function getTotalStats() {
-    return loadFromStorage(STORAGE_KEYS.GAME_STATS, {
+    const rawData = loadFromStorage(STORAGE_KEYS.GAME_STATS, null);
+    const defaultStats = {
         totalGames: 0,
         totalScore: 0,
         totalKills: 0,
@@ -69,7 +95,23 @@ function getTotalStats() {
         totalTime: 0,
         levelsCompleted: [],
         perfectDefenses: 0
-    });
+    };
+
+    if (!rawData) {
+        return defaultStats;
+    }
+
+    const validated = getValidObject(rawData, defaultStats);
+    
+    return {
+        totalGames: Math.max(0, getValidNumber(validated.totalGames, 0)),
+        totalScore: Math.max(0, getValidNumber(validated.totalScore, 0)),
+        totalKills: Math.max(0, getValidNumber(validated.totalKills, 0)),
+        totalMerges: Math.max(0, getValidNumber(validated.totalMerges, 0)),
+        totalTime: Math.max(0, getValidNumber(validated.totalTime, 0)),
+        levelsCompleted: getValidArray(validated.levelsCompleted, []).filter(x => isValidNumber(x)),
+        perfectDefenses: Math.max(0, getValidNumber(validated.perfectDefenses, 0))
+    };
 }
 
 function updateTotalStats(newStats) {
@@ -90,10 +132,22 @@ function updateTotalStats(newStats) {
 }
 
 function getSettings() {
-    return loadFromStorage(STORAGE_KEYS.SETTINGS, {
+    const rawData = loadFromStorage(STORAGE_KEYS.SETTINGS, null);
+    const defaultSettings = {
         soundEnabled: true,
         difficulty: 'normal'
-    });
+    };
+
+    if (!rawData) {
+        return defaultSettings;
+    }
+
+    const validated = getValidObject(rawData, defaultSettings);
+    
+    return {
+        soundEnabled: getValidBoolean(validated.soundEnabled, true),
+        difficulty: typeof validated.difficulty === 'string' ? validated.difficulty : 'normal'
+    };
 }
 
 function saveSettings(settings) {
