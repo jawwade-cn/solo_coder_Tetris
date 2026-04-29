@@ -10,11 +10,6 @@ function initGame() {
 
     game = new Game();
     uiManager = new UIManager(game);
-    
-    window.game = game;
-    window.uiManager = uiManager;
-    window.canvas = canvas;
-    window.nextCanvas = nextCanvas;
 
     addExtraButtons();
 }

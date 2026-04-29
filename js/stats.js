@@ -21,6 +21,11 @@ class BattleStats {
         this.elementsUsed = { FIRE: 0, WATER: 0, EARTH: 0 };
         this.waveStats = [];
         this.currentWave = 0;
+        this.tetrisCount = 0;
+    }
+
+    addTetris() {
+        this.tetrisCount++;
     }
 
     startWave(wave) {
@@ -111,7 +116,8 @@ class BattleStats {
             elementsUsed: { ...this.elementsUsed },
             waveStats: [...this.waveStats],
             perfectDefense: this.damageTaken === 0,
-            timestamp: this.endTime
+            timestamp: this.endTime,
+            tetrisCount: this.tetrisCount
         };
     }
 }

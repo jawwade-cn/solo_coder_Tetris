@@ -151,6 +151,7 @@ class EnemyManager {
         this.totalEnemiesSpawned = 0;
         this.waveEnemies = 0;
         this.waveKills = 0;
+        this.waveEscaped = 0;
         this.canvas = null;
     }
 
@@ -161,6 +162,7 @@ class EnemyManager {
         this.totalEnemiesSpawned = 0;
         this.waveEnemies = 0;
         this.waveKills = 0;
+        this.waveEscaped = 0;
     }
 
     setCanvas(canvas) {
@@ -171,6 +173,7 @@ class EnemyManager {
         this.wave = waveNum;
         this.waveEnemies = 0;
         this.waveKills = 0;
+        this.waveEscaped = 0;
 
         const enemyTypes = level.battle?.enemyTypes || ['BASIC'];
         const enemiesPerWave = level.battle?.enemiesPerWave || 5;
@@ -224,6 +227,7 @@ class EnemyManager {
             } else if (reachedBottom) {
                 reached.push(enemy);
                 this.enemies.splice(i, 1);
+                this.waveEscaped++;
             }
         }
 
@@ -256,7 +260,7 @@ class EnemyManager {
     }
 
     isWaveComplete() {
-        return this.waveKills >= this.waveEnemies && this.enemies.length === 0;
+        return (this.waveKills + this.waveEscaped) >= this.waveEnemies && this.enemies.length === 0;
     }
 
     draw(ctx) {

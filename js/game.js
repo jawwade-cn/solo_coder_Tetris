@@ -25,6 +25,8 @@ class Game {
         this.maxPlayerHP = 10;
         this.waveTransition = false;
         this.waveTransitionTime = 0;
+        this.phaseTransition = false;
+        this.phaseTransitionTime = 0;
 
         this.preparationTime = 0;
         this.preparationTimeLimit = 60;
@@ -37,6 +39,9 @@ class Game {
 
         this.lastTime = 0;
         this.gameLoopId = null;
+
+        this.dropCounter = 0;
+        this.dropInterval = 1000;
     }
 
     init(canvas, nextCanvas) {
@@ -90,6 +95,8 @@ class Game {
         this.preparationPiecesUsed = 0;
         this.energy = 0;
         this.linesCleared = 0;
+        this.dropCounter = 0;
+        this.dropInterval = 1000;
 
         if (this.currentLevel) {
             this.playerHP = this.currentLevel.startHP;
@@ -143,7 +150,8 @@ class Game {
             this.stats.addMerges(merged.length);
         }
 
-        this.startWave();
+        this.phaseTransition = true;
+        this.phaseTransitionTime = performance.now();
 
         playSound('wave');
     }
@@ -165,6 +173,13 @@ class Game {
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
 
+        if (this.phaseTransition) {
+            if (currentTime - this.phaseTransitionTime > 2000) {
+                this.phaseTransition = false;
+                this.startWave();
+            }
+        }
+
         if (this.waveTransition) {
             if (currentTime - this.waveTransitionTime > 2000) {
                 this.waveTransition = false;
@@ -173,7 +188,7 @@ class Game {
 
         if (this.phase === GAME_PHASES.PREPARATION) {
             this.updatePreparationPhase(deltaTime, currentTime);
-        } else if (this.phase === GAME_PHASES.BATTLE) {
+        } else if (this.phase === GAME_PHASES.BATTLE && !this.phaseTransition) {
             this.updateBattlePhase(deltaTime, currentTime);
         }
 
@@ -191,6 +206,17 @@ class Game {
             this.preparationPiecesUsed >= this.preparationPiecesLimit) {
             this.switchToBattlePhase();
             return;
+        }
+
+        this.dropCounter += deltaTime;
+        
+        this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+        
+        if (this.dropCounter >= this.dropInterval) {
+            if (!this.movePiece(0, 1)) {
+                this.lockPiece();
+            }
+            this.dropCounter = 0;
         }
 
         this.updateUI();
@@ -241,7 +267,9 @@ class Game {
         this.renderer.clear();
         this.renderer.drawGrid();
         
-        if (this.phase === GAME_PHASES.BATTLE) {
+        if (this.phase === GAME_PHASES.PREPARATION) {
+            this.renderer.drawBoard(this.elementSystem.board, this.elementSystem.elementBoard);
+        } else {
             this.heroSystem.draw(this.renderer.ctx, performance.now());
             this.enemyManager.draw(this.renderer.ctx);
         }
@@ -272,7 +300,12 @@ class Game {
             this.renderer.drawPause();
         }
 
-        if (this.waveTransition) {
+        if (this.phaseTransition) {
+            this.renderer.drawPhaseTransition(
+                GAME_PHASES.PREPARATION,
+                GAME_PHASES.BATTLE
+            );
+        } else if (this.waveTransition) {
             const isWaveComplete = this.currentWave > 1 && 
                 performance.now() - this.waveTransitionTime < 1000;
             this.renderer.drawLevelTransition(
@@ -308,6 +341,9 @@ class Game {
         )) {
             this.currentPiece.x += dx;
             this.currentPiece.y += dy;
+            if (dy > 0) {
+                this.dropCounter = 0;
+            }
             playSound('move');
             return true;
         }
@@ -469,6 +505,8 @@ class Game {
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const finalScoreElement = document.getElementById('finalScore');
         const gameOverTitle = document.querySelector('.game-over-title');
+        const achievementNotice = document.getElementById('achievementNotice');
+        const achievementList = document.getElementById('achievementList');
 
         if (gameOverTitle) {
             gameOverTitle.textContent = won ? '胜利!' : '游戏结束';
@@ -479,14 +517,23 @@ class Game {
             finalScoreElement.textContent = `${this.score} (${stats.kills}击杀, ${stats.merges}合成, ${this.linesCleared}消除)`;
         }
 
-        if (gameOverOverlay) {
-            gameOverOverlay.classList.add('show');
+        if (achievementNotice && achievementList) {
+            if (newAchievements.length > 0) {
+                achievementNotice.style.display = 'block';
+                achievementList.innerHTML = newAchievements.map(a => 
+                    `<div style="padding: 8px; margin: 5px 0; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
+                        <span style="font-size: 18px; margin-right: 8px;">${a.icon}</span>
+                        <span style="font-weight: bold; color: #FFD700;">${a.name}</span>
+                        <span style="color: #999; font-size: 12px; margin-left: 10px;">${a.description}</span>
+                    </div>`
+                ).join('');
+            } else {
+                achievementNotice.style.display = 'none';
+            }
         }
 
-        if (newAchievements.length > 0) {
-            setTimeout(() => {
-                alert(`🎉 恭喜解锁成就: ${newAchievements.map(a => a.name).join(', ')}`);
-            }, 500);
+        if (gameOverOverlay) {
+            gameOverOverlay.classList.add('show');
         }
     }
 
